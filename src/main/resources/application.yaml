@@ -1,3 +1,27 @@
 spring:
   application:
     name: mem-kek
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DATASOURCE-SERVER:jdbc:postgresql://localhost:5432/mem_kek_db}
+    username: postgres
+    password: postgres
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 20
+        default_batch_fetch_size: 100
+    show-sql: true
+    open-in-view: false
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
