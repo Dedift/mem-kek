@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: 3
+      author: stanislau.zhvanski
+      changes:
+        - createIndex:
+            indexName: idx_posts_channel_id
+            tableName: posts
+            columns:
+              - column:
+                  name: channel_id
+        - createIndex:
+            indexName: idx_posts_status
+            tableName: posts
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            indexName: idx_posts_telegram_date
+            tableName: posts
+            columns:
+              - column:
+                  name: telegram_date

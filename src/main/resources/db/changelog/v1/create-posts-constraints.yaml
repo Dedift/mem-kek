@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: 4
+      author: stanislau.zhvanski
+      changes:
+        - addUniqueConstraint:
+            constraintName: uc_channel_message
+            tableName: posts
+            columnNames: channel_id, telegram_message_id
+            remarks: 'Unique per channel'
+        - addForeignKeyConstraint:
+            baseTableName: posts
+            baseColumnNames: channel_id
+            constraintName: fk_posts_channel
+            referencedTableName: channels
+            referencedColumnNames: id
+            onDelete: CASCADE
+            onUpdate: RESTRICT
+            remarks: 'Posts -> channels'

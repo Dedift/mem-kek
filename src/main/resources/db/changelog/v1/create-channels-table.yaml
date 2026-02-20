@@ -1,0 +1,43 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: stanislau.zhvanski
+      changes:
+        - createTable:
+            tableName: channels
+            remarks: 'Telegram source channels'
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  remarks: 'Primary key'
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: telegram_channel_id
+                  type: VARCHAR(255)
+                  remarks: 'Telegram channel identifier'
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: channel_name
+                  type: VARCHAR(255)
+                  remarks: 'Channel name'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  remarks: 'Is channel active'
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  remarks: 'Created at'
+                  constraints:
+                    nullable: true

@@ -8,20 +8,30 @@ spring:
     username: postgres
     password: postgres
 
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-        jdbc:
-          batch_size: 20
-        default_batch_fetch_size: 100
-    show-sql: true
-    open-in-view: false
+  r2dbc:
+    url: ${R2DBC_URL:r2dbc:postgresql://localhost:5432/mem_kek_db}
+    username: ${R2DBC_USERNAME:postgres}
+    password: ${R2DBC_PASSWORD:postgres}
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true
+    url: ${DATASOURCE-SERVER:jdbc:postgresql://localhost:5432/mem_kek_db}
+    user: ${DATASOURCE_USERNAME:postgres}
+    password: ${DATASOURCE_PASSWORD:postgres}
 
 logging:
   level:
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.r2dbc.core: DEBUG
+    liquibase: INFO
+
+telegram:
+  bot:
+    token: ${TELEGRAM_BOT_TOKEN:8461658537:AAHIq4Nn1F21Yg_hl4oH_mIdWQHMiylWICU}
+    username: ${TELEGRAM_BOT_USERNAME:Mem_collector_bot}
+
+minio:
+  endpoint: http://localhost:9000
+  access-key: minioadmin
+  secret-key: minioadmin123
+  bucket: memes
