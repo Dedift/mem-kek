@@ -9,4 +9,5 @@ public record ChannelResponse(
         UUID id,
         String channelName,
         Boolean isActive,
-        String createdAt) {}
+        String createdAt) {
+}

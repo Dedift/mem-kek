@@ -85,7 +85,6 @@ public class MinioService {
                         .bucket(bucketName)
                         .object(objectName)
                         .expiry(expirySeconds)
-                        .build()
-        );
+                        .build());
     }
 }

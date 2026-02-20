@@ -25,6 +25,7 @@ public class ChannelService {
     private final ChannelRepository channelRepository;
     private final ChannelQueryRepository channelQueryRepository;
     private final ChannelMapper channelMapper;
+    private final TelegramApiService telegramApiService;
 
     public Mono<ChannelResponse> createChannel(ChannelCreateRequest request) {
         return channelRepository.existsByTelegramChannelId(request.telegramChannelId())
@@ -34,10 +35,13 @@ public class ChannelService {
                                 "Channel with ID " + request.telegramChannelId() + " already exists"
                         ));
                     }
-                    Channel channel = new Channel();
-                    channel.setTelegramChannelId(request.telegramChannelId());
-                    channel.setChannelName(request.channelName());
-                    return channelRepository.save(channel);
+                    return telegramApiService.getChannelTitle(request.telegramChannelId())
+                            .flatMap(title -> {
+                                Channel channel = new Channel();
+                                channel.setTelegramChannelId(request.telegramChannelId());
+                                channel.setChannelName(title);
+                                return channelRepository.save(channel);
+                            });
                 })
                 .doOnNext(saved -> log.info("Created new channel: {} ({})",
                         saved.getChannelName(), saved.getTelegramChannelId()))

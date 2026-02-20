@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 import java.util.UUID;
 
 @Repository
-public interface TextPostRepository extends R2dbcRepository<TextPost, UUID> {}
+public interface TextPostRepository extends R2dbcRepository<TextPost, UUID> {
+}
