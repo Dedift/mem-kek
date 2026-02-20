@@ -31,6 +31,7 @@ public class MemeCollectorBot extends TelegramLongPollingBot {
     public MemeCollectorBot(TelegramBotConfig config,
                             PostSaveService postSaveService,
                             ChannelService channelService) {
+        super(config.getToken());
         this.config = config;
         this.postSaveService = postSaveService;
         this.channelService = channelService;
@@ -41,11 +42,6 @@ public class MemeCollectorBot extends TelegramLongPollingBot {
     @Override
     public String getBotUsername() {
         return config.getUsername();
-    }
-
-    @Override
-    public String getBotToken() {
-        return config.getToken();
     }
 
     @Override
