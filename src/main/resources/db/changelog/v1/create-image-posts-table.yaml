@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - changeSet:
+      id: 6
+      author: stanislau.zhvanski
+      changes:
+        - createTable:
+            tableName: image_posts
+            remarks: 'Image posts'
+            columns:
+              - column:
+                  name: post_id
+                  type: UUID
+                  remarks: 'FK to posts'
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: media_object_name
+                  type: VARCHAR(1000)
+                  remarks: 'Media object name in MinIO'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: telegram_file_unique_id
+                  type: VARCHAR(512)
+                  remarks: 'Telegram stable file id'
+                  constraints:
+                    nullable: true
+              - column:
+                  name: caption
+                  type: TEXT
+                  remarks: 'Caption'
+                  constraints:
+                    nullable: true

@@ -1,6 +1,5 @@
 package mm.memkek.dao.entity;
 
-import jakarta.validation.constraints.Size;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import lombok.Data;
@@ -38,16 +37,6 @@ public class Post {
     @Column("content_type")
     private ContentType contentType;
 
-    @Nullable
-    @Size(max = 10000, message = "Content text cannot exceed 10000 characters")
-    @Column("content_text")
-    private String contentText;
-
-    @Nullable
-    @Size(max = 1000, message = "Media object name cannot exceed 1000 characters")
-    @Column("media_object_name")
-    private String mediaObjectName;
-
     @Column("status")
     private PostStatus status = PostStatus.REVIEW;
 
@@ -62,8 +51,4 @@ public class Post {
     @Nullable
     @Column("approved_at")
     private LocalDateTime approvedAt;
-
-    @Nullable
-    @Column("telegram_file_unique_id")
-    private String telegramFileUniqueId;
 }

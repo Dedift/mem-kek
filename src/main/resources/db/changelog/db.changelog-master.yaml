@@ -6,6 +6,12 @@ databaseChangeLog:
   - include:
       file: db/changelog/v1/create-posts-table.yaml
   - include:
+      file: db/changelog/v1/create-text-posts-table.yaml
+  - include:
+      file: db/changelog/v1/create-image-posts-table.yaml
+  - include:
       file: db/changelog/v1/create-posts-indexes.yaml
   - include:
       file: db/changelog/v1/create-posts-constraints.yaml
+  - include:
+      file: db/changelog/v1/create-posts-subtype-constraints.yaml

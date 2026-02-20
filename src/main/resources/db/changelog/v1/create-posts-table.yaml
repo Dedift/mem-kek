@@ -40,18 +40,6 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: content_text
-                  type: TEXT
-                  remarks: 'Post text'
-                  constraints:
-                    nullable: true
-              - column:
-                  name: media_object_name
-                  type: VARCHAR(1000)
-                  remarks: 'Media object name in MinIO'
-                  constraints:
-                    nullable: true
-              - column:
                   name: status
                   type: VARCHAR(20)
                   defaultValue: 'REVIEW'
@@ -74,11 +62,5 @@ databaseChangeLog:
                   name: approved_at
                   type: TIMESTAMP
                   remarks: 'Approved at'
-                  constraints:
-                    nullable: true
-              - column:
-                  name: telegram_file_unique_id
-                  type: VARCHAR(512)
-                  remarks: 'Telegram stable file id'
                   constraints:
                     nullable: true

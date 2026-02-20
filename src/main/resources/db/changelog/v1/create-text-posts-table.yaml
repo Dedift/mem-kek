@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: 5
+      author: stanislau.zhvanski
+      changes:
+        - createTable:
+            tableName: text_posts
+            remarks: 'Text posts'
+            columns:
+              - column:
+                  name: post_id
+                  type: UUID
+                  remarks: 'FK to posts'
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: content_text
+                  type: TEXT
+                  remarks: 'Post text'
+                  constraints:
+                    nullable: false
