@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: 7
+      author: stanislau.zhvanski
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: text_posts
+            baseColumnNames: post_id
+            constraintName: fk_text_posts_post
+            referencedTableName: posts
+            referencedColumnNames: id
+            onDelete: CASCADE
+            onUpdate: RESTRICT
+            remarks: 'Text post -> posts'
+        - addForeignKeyConstraint:
+            baseTableName: image_posts
+            baseColumnNames: post_id
+            constraintName: fk_image_posts_post
+            referencedTableName: posts
+            referencedColumnNames: id
+            onDelete: CASCADE
+            onUpdate: RESTRICT
+            remarks: 'Image post -> posts'

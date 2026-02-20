@@ -2,11 +2,14 @@ package mm.memkek.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import mm.memkek.dao.entity.ImagePost;
 import mm.memkek.dao.entity.Post;
+import mm.memkek.dao.entity.TextPost;
 import mm.memkek.dao.enums.ContentType;
 import mm.memkek.dao.enums.PostStatus;
 import mm.memkek.repository.ChannelRepository;
 import mm.memkek.repository.PostRepository;
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -21,6 +24,7 @@ public class PostSaveService {
 
     private final PostRepository postRepository;
     private final ChannelRepository channelRepository;
+    private final R2dbcEntityTemplate entityTemplate;
     private final MinioService minioService;
 
     public Mono<Post> saveTextPost(String channelId, Long messageId, Integer date, String text) {
@@ -37,9 +41,16 @@ public class PostSaveService {
                                     post.setTelegramMessageId(messageId);
                                     post.setTelegramDate(convertUnixToLocalDateTime(date));
                                     post.setContentType(ContentType.TEXT);
-                                    post.setContentText(text);
                                     post.setStatus(PostStatus.REVIEW);
                                     return postRepository.save(post)
+                                            .flatMap(saved -> {
+                                                TextPost textPost = new TextPost();
+                                                textPost.setPostId(saved.getId());
+                                                textPost.setContentText(text);
+                                                return entityTemplate.insert(TextPost.class)
+                                                        .using(textPost)
+                                                        .thenReturn(saved);
+                                            })
                                             .doOnNext(saved -> log.info("Saved text post: {}", saved.getId()));
                                 }));
     }
@@ -63,11 +74,18 @@ public class PostSaveService {
                                                 post.setTelegramMessageId(messageId);
                                                 post.setTelegramDate(convertUnixToLocalDateTime(date));
                                                 post.setContentType(contentType);
-                                                post.setContentText(caption);
-                                                post.setMediaObjectName(objectName);
-                                                post.setTelegramFileUniqueId(telegramFileUniqueId);
                                                 post.setStatus(PostStatus.REVIEW);
                                                 return postRepository.save(post)
+                                                        .flatMap(saved -> {
+                                                            ImagePost imagePost = new ImagePost();
+                                                            imagePost.setPostId(saved.getId());
+                                                            imagePost.setMediaObjectName(objectName);
+                                                            imagePost.setTelegramFileUniqueId(telegramFileUniqueId);
+                                                            imagePost.setCaption(caption);
+                                                            return entityTemplate.insert(ImagePost.class)
+                                                                    .using(imagePost)
+                                                                    .thenReturn(saved);
+                                                        })
                                                         .doOnNext(saved -> log.info("Saved media post: {}, object: {}",
                                                                 saved.getId(), objectName));
                                             });
