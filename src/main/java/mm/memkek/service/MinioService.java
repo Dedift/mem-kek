@@ -1,12 +1,16 @@
 package mm.memkek.service;
 
-import io.minio.*;
-import io.minio.errors.MinioException;
+import io.minio.BucketExistsArgs;
+import io.minio.MakeBucketArgs;
+import io.minio.MinioClient;
+import io.minio.GetPresignedObjectUrlArgs;
+import io.minio.PutObjectArgs;
+import io.minio.http.Method;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
-import java.io.InputStream;
 import java.util.UUID;
 
 @Service
@@ -27,7 +31,6 @@ public class MinioService {
                 .build();
         this.bucketName = bucketName;
 
-        // Создаем bucket при старте, если его нет
         createBucketIfNotExists();
     }
 
@@ -47,47 +50,42 @@ public class MinioService {
         }
     }
 
-    /**
-     * Загрузить файл в MinIO
-     * @return URL загруженного файла
-     */
-    public String uploadFile(byte[] data, String fileName, String contentType) {
-        try {
-            String objectName = UUID.randomUUID() + "_" + fileName;
+    public Mono<String> uploadFile(byte[] data, String fileName, String contentType) {
+        return Mono.fromCallable(() -> {
+                    String objectName = UUID.randomUUID() + "_" + fileName;
 
-            minioClient.putObject(PutObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectName)
-                    .stream(new java.io.ByteArrayInputStream(data), data.length, -1)
-                    .contentType(contentType)
-                    .build());
+                    minioClient.putObject(PutObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .stream(new java.io.ByteArrayInputStream(data), data.length, -1)
+                            .contentType(contentType)
+                            .build());
 
-            // Возвращаем URL для доступа к файлу
-            return String.format("http://localhost:9000/%s/%s", bucketName, objectName);
-
-        } catch (Exception e) {
-            throw new RuntimeException("Error uploading file to MinIO", e);
-        }
+                    return objectName;
+                })
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
-    /**
-     * Загрузить файл из InputStream
-     */
-    public String uploadFile(InputStream inputStream, String fileName, String contentType, long size) {
-        try {
-            String objectName = UUID.randomUUID() + "_" + fileName;
+    public Mono<String> getPresignedUrl(String objectName, int expirySeconds) {
+        return Mono.fromCallable(() -> presignBlocking(objectName, expirySeconds))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
 
-            minioClient.putObject(PutObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectName)
-                    .stream(inputStream, size, -1)
-                    .contentType(contentType)
-                    .build());
-
-            return String.format("http://localhost:9000/%s/%s", bucketName, objectName);
-
-        } catch (Exception e) {
-            throw new RuntimeException("Error uploading file to MinIO", e);
+    public Mono<String> getPresignedUrlIfPresent(String objectName, int expirySeconds) {
+        if (objectName == null || objectName.isBlank()) {
+            return Mono.empty();
         }
+        return getPresignedUrl(objectName, expirySeconds);
+    }
+
+    private String presignBlocking(String objectName, int expirySeconds) throws Exception {
+        return minioClient.getPresignedObjectUrl(
+                GetPresignedObjectUrlArgs.builder()
+                        .method(Method.GET)
+                        .bucket(bucketName)
+                        .object(objectName)
+                        .expiry(expirySeconds)
+                        .build()
+        );
     }
 }

@@ -11,6 +11,7 @@ databaseChangeLog:
                   name: id
                   type: UUID
                   remarks: 'Primary key'
+                  defaultValueComputed: gen_random_uuid()
                   constraints:
                     primaryKey: true
                     nullable: false
@@ -40,7 +41,3 @@ databaseChangeLog:
                   remarks: 'Created at'
                   constraints:
                     nullable: true
-        - addDefaultValue:
-            tableName: channels
-            columnName: is_active
-            defaultValueBoolean: true

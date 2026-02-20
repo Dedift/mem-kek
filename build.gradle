@@ -20,16 +20,20 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-liquibase'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     implementation 'org.telegram:telegrambots-spring-boot-starter:6.9.7.1'
     implementation 'io.minio:minio:8.5.10'
     implementation 'org.jspecify:jspecify:1.0.0'
+    implementation 'org.postgresql:r2dbc-postgresql'
+    implementation 'org.mapstruct:mapstruct:1.6.2'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.2'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
     runtimeOnly 'org.postgresql:postgresql'

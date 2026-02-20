@@ -16,13 +16,4 @@ public record ChannelCreateRequest(
 
         @NotBlank(message = "Channel name is required")
         @Size(min = 1, max = 255, message = "Channel name must be between 1 and 255 characters")
-        String channelName,
-
-        Boolean isActive
-) {
-    public ChannelCreateRequest {
-        if (isActive == null) {
-            isActive = true;
-        }
-    }
-}
+        String channelName) {}

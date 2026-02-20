@@ -8,22 +8,22 @@ spring:
     username: postgres
     password: postgres
 
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+  r2dbc:
+    url: ${R2DBC_URL:r2dbc:postgresql://localhost:5432/mem_kek_db}
+    username: ${R2DBC_USERNAME:postgres}
+    password: ${R2DBC_PASSWORD:postgres}
 
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true
+    url: ${DATASOURCE-SERVER:jdbc:postgresql://localhost:5432/mem_kek_db}
+    user: ${DATASOURCE_USERNAME:postgres}
+    password: ${DATASOURCE_PASSWORD:postgres}
 
 logging:
   level:
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.r2dbc.core: DEBUG
+    liquibase: INFO
 
 telegram:
   bot:

@@ -2,14 +2,13 @@ package mm.memkek.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import mm.memkek.dao.entity.Channel;
 import mm.memkek.dao.entity.Post;
 import mm.memkek.dao.enums.ContentType;
 import mm.memkek.dao.enums.PostStatus;
 import mm.memkek.repository.ChannelRepository;
 import mm.memkek.repository.PostRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -24,85 +23,61 @@ public class PostSaveService {
     private final ChannelRepository channelRepository;
     private final MinioService minioService;
 
-    /**
-     * Сохранить текстовый пост (анекдот)
-     */
-    @Transactional
-    public Post saveTextPost(String channelId, Long messageId, Integer date, String text) {
-        Channel channel = getOrCreateChannel(channelId);
-
-        // Проверяем, не сохранен ли уже этот пост
-        if (postRepository.existsByChannelAndTelegramMessageId(channel, messageId)) {
-            log.info("Post {} already exists in channel {}", messageId, channelId);
-            return null;
-        }
-
-        Post post = new Post();
-        post.setChannel(channel);
-        post.setTelegramMessageId(messageId);
-        post.setTelegramDate(convertUnixToLocalDateTime(date));
-        post.setContentType(ContentType.TEXT);
-        post.setContentText(text);
-        post.setStatus(PostStatus.REVIEW);
-
-        Post savedPost = postRepository.save(post);
-        log.info("Saved text post: {}", savedPost.getId());
-        return savedPost;
-    }
-
-    /**
-     * Сохранить медиа-пост (мем с картинкой)
-     */
-    @Transactional
-    public Post saveMediaPost(String channelId, Long messageId, Integer date,
-                              String telegramFileId, String telegramFileUniqueId,
-                              byte[] mediaData, String fileName, String caption) {
-        Channel channel = getOrCreateChannel(channelId);
-
-        // Проверяем, не сохранен ли уже этот пост
-        if (postRepository.existsByChannelAndTelegramMessageId(channel, messageId)) {
-            log.info("Post {} already exists in channel {}", messageId, channelId);
-            return null;
-        }
-
-        // Определяем тип контента по расширению
-        ContentType contentType = determineContentType(fileName);
-
-        // Загружаем в MinIO
-        String mediaUrl = minioService.uploadFile(mediaData, fileName, getMimeType(fileName));
-
-        Post post = new Post();
-        post.setChannel(channel);
-        post.setTelegramMessageId(messageId);
-        post.setTelegramDate(convertUnixToLocalDateTime(date));
-        post.setContentType(contentType);
-        post.setContentText(caption); // подпись к мему
-        post.setMediaUrl(mediaUrl);
-        post.setTelegramFileId(telegramFileId);
-        post.setTelegramFileUniqueId(telegramFileUniqueId);
-        post.setStatus(PostStatus.REVIEW);
-
-        Post savedPost = postRepository.save(post);
-        log.info("Saved media post: {}, URL: {}", savedPost.getId(), mediaUrl);
-        return savedPost;
-    }
-
-    private Channel getOrCreateChannel(String channelId) {
+    public Mono<Post> saveTextPost(String channelId, Long messageId, Integer date, String text) {
         return channelRepository.findByTelegramChannelId(channelId)
-                .orElseGet(() -> {
-                    Channel newChannel = new Channel();
-                    newChannel.setTelegramChannelId(channelId);
-                    newChannel.setChannelName("Unknown Channel"); // можно потом обновить
-                    newChannel.setIsActive(true);
-                    return channelRepository.save(newChannel);
-                });
+                .flatMap(channel ->
+                        postRepository.existsByChannelIdAndTelegramMessageId(channel.getId(), messageId)
+                                .flatMap(exists -> {
+                                    if (exists) {
+                                        log.info("Post {} already exists in channel {}", messageId, channelId);
+                                        return Mono.empty();
+                                    }
+                                    Post post = new Post();
+                                    post.setChannelId(channel.getId());
+                                    post.setTelegramMessageId(messageId);
+                                    post.setTelegramDate(convertUnixToLocalDateTime(date));
+                                    post.setContentType(ContentType.TEXT);
+                                    post.setContentText(text);
+                                    post.setStatus(PostStatus.REVIEW);
+                                    return postRepository.save(post)
+                                            .doOnNext(saved -> log.info("Saved text post: {}", saved.getId()));
+                                }));
+    }
+
+    public Mono<Post> saveMediaPost(String channelId, Long messageId, Integer date,
+                                    String telegramFileUniqueId,
+                                    byte[] mediaData, String fileName, String caption) {
+        return channelRepository.findByTelegramChannelId(channelId)
+                .flatMap(channel ->
+                        postRepository.existsByChannelIdAndTelegramMessageId(channel.getId(), messageId)
+                                .flatMap(exists -> {
+                                    if (exists) {
+                                        log.info("Post {} already exists in channel {}", messageId, channelId);
+                                        return Mono.empty();
+                                    }
+                                    ContentType contentType = determineContentType(fileName);
+                                    return minioService.uploadFile(mediaData, fileName, getMimeType(fileName))
+                                            .flatMap(objectName -> {
+                                                Post post = new Post();
+                                                post.setChannelId(channel.getId());
+                                                post.setTelegramMessageId(messageId);
+                                                post.setTelegramDate(convertUnixToLocalDateTime(date));
+                                                post.setContentType(contentType);
+                                                post.setContentText(caption);
+                                                post.setMediaObjectName(objectName);
+                                                post.setTelegramFileUniqueId(telegramFileUniqueId);
+                                                post.setStatus(PostStatus.REVIEW);
+                                                return postRepository.save(post)
+                                                        .doOnNext(saved -> log.info("Saved media post: {}, object: {}",
+                                                                saved.getId(), objectName));
+                                            });
+                                }));
     }
 
     private LocalDateTime convertUnixToLocalDateTime(Integer unixTime) {
         return LocalDateTime.ofInstant(
                 Instant.ofEpochSecond(unixTime),
-                ZoneId.systemDefault()
-        );
+                ZoneId.systemDefault());
     }
 
     private ContentType determineContentType(String fileName) {

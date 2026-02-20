@@ -3,7 +3,6 @@ package mm.memkek.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import mm.memkek.dao.entity.Channel;
 import mm.memkek.dto.request.ChannelCreateRequest;
 import mm.memkek.dto.response.ChannelResponse;
 import mm.memkek.service.ChannelService;
@@ -14,6 +13,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
@@ -25,92 +25,45 @@ public class ChannelController {
 
     private final ChannelService channelService;
 
-    /**
-     * Добавление нового канала для отслеживания
-     * POST /api/crm/channels
-     */
     @PostMapping
-    public ResponseEntity<ChannelResponse> createChannel(
+    public Mono<ResponseEntity<ChannelResponse>> createChannel(
             @Valid @RequestBody ChannelCreateRequest request) {
         log.info("Creating new channel: {}", request.telegramChannelId());
-        ChannelResponse created = channelService.createChannel(request);
-        return new ResponseEntity<>(created, HttpStatus.CREATED);
+        return channelService.createChannel(request)
+                .map(created -> new ResponseEntity<>(created, HttpStatus.CREATED));
     }
 
-    /**
-     * Получение списка всех каналов с пагинацией
-     * GET /api/crm/channels?page=0&size=20&sort=createdAt,desc
-     */
     @GetMapping
-    public ResponseEntity<Page<ChannelResponse>> getAllChannels(
+    public Mono<ResponseEntity<Page<ChannelResponse>>> getAllChannels(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable) {
-        Page<ChannelResponse> channels = channelService.getAllChannels(pageable);
-        return ResponseEntity.ok(channels);
+        return channelService.getAllChannels(pageable)
+                .map(ResponseEntity::ok);
     }
 
-    /**
-     * Получение только активных каналов
-     * GET /api/crm/channels/active
-     */
     @GetMapping("/active")
-    public ResponseEntity<Page<ChannelResponse>> getActiveChannels(
-            @PageableDefault(size = 20) Pageable pageable) {
-        Page<ChannelResponse> channels = channelService.getActiveChannels(pageable);
-        return ResponseEntity.ok(channels);
+    public Mono<ResponseEntity<Page<ChannelResponse>>> getActiveChannels(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+        return channelService.getActiveChannels(pageable)
+                .map(ResponseEntity::ok);
     }
 
-    /**
-     * Получение канала по ID
-     * GET /api/crm/channels/{id}
-     */
     @GetMapping("/{id}")
-    public ResponseEntity<ChannelResponse> getChannelById(@PathVariable UUID id) {
-        ChannelResponse channel = channelService.getChannelById(id);
-        return ResponseEntity.ok(channel);
+    public Mono<ResponseEntity<ChannelResponse>> getChannelById(@PathVariable UUID id) {
+        return channelService.getChannelById(id)
+                .map(ResponseEntity::ok);
     }
 
-    /**
-     * Получение канала по Telegram ID
-     * GET /api/crm/channels/by-telegram/{telegramId}
-     */
-    @GetMapping("/by-telegram/{telegramId}")
-    public ResponseEntity<ChannelResponse> getChannelByTelegramId(@PathVariable String telegramId) {
-        // Добавляем @ если его нет
-        String normalizedId = telegramId.startsWith("@") ? telegramId : "@" + telegramId;
-        Channel channel = channelService.getChannelByTelegramId(normalizedId);
-        return ResponseEntity.ok(ChannelResponse.fromEntity(channel));
+    @PatchMapping("/{id}/deactivate")
+    public Mono<ResponseEntity<ChannelResponse>> deactivateChannel(@PathVariable UUID id) {
+        return channelService.deactivateChannel(id)
+                .map(ResponseEntity::ok);
     }
 
-    /**
-     * Обновление канала
-     * PUT /api/crm/channels/{id}
-     */
-    @PutMapping("/{id}")
-    public ResponseEntity<ChannelResponse> updateChannel(
-            @PathVariable UUID id,
-            @Valid @RequestBody ChannelCreateRequest request) {
-        ChannelResponse updated = channelService.updateChannel(id, request);
-        return ResponseEntity.ok(updated);
-    }
-
-    /**
-     * Активация/деактивация канала
-     * PATCH /api/crm/channels/{id}/toggle
-     */
-    @PatchMapping("/{id}/toggle")
-    public ResponseEntity<ChannelResponse> toggleChannelActive(@PathVariable UUID id) {
-        ChannelResponse toggled = channelService.toggleChannelActive(id);
-        return ResponseEntity.ok(toggled);
-    }
-
-    /**
-     * Удаление канала
-     * DELETE /api/crm/channels/{id}
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteChannel(@PathVariable UUID id) {
-        channelService.deleteChannel(id);
-        return ResponseEntity.noContent().build();
+    @PatchMapping("/{id}/activate")
+    public Mono<ResponseEntity<ChannelResponse>> activateChannel(@PathVariable UUID id) {
+        return channelService.activateChannel(id)
+                .map(ResponseEntity::ok);
     }
 }

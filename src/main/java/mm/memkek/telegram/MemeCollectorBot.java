@@ -11,6 +11,8 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -86,112 +88,128 @@ public class MemeCollectorBot extends TelegramLongPollingBot {
         String channelId = channelUserName != null ? "@" + channelUserName : chatId.toString();
         log.info("Looking for channel in DB: {}", channelId);
 
-        boolean isActive = channelService.isChannelActive(channelId);
-        log.info("Channel active status: {}", isActive);
-
-        if (!isActive) {
-            log.warn("Channel {} is not active or not registered, ignoring", channelId);
-            return;
-        }
-
-        processMessage(message, channelId);
+        channelService.isChannelActive(channelId)
+                .flatMap(isActive -> {
+                    log.info("Channel active status: {}", isActive);
+                    if (!isActive) {
+                        log.warn("Channel {} is not active or not registered, ignoring", channelId);
+                        return Mono.empty();
+                    }
+                    return processMessage(message, channelId);
+                })
+                .subscribe();
     }
 
     private void handleGroupMessage(Message message) {
         log.info("This is a GROUP message");
         String groupUserName = message.getChat().getUserName();
         String groupId = groupUserName != null ? "@" + groupUserName : message.getChatId().toString();
-        processMessage(message, groupId);
+        processMessage(message, groupId).subscribe();
     }
 
-    private void processMessage(Message message, String sourceId) {
-        log.info("Processing channel message: {}", message.getMessageId());
+    private Mono<Void> processMessage(Message message, String sourceId) {
+        log.info("Processing message: {}", message.getMessageId());
 
+        Mono<Void> text = Mono.empty();
         if (message.hasText()) {
             log.info("Text message: {}", message.getText());
-            postSaveService.saveTextPost(
+            text = postSaveService.saveTextPost(
                     sourceId,
                     message.getMessageId().longValue(),
                     message.getDate(),
                     message.getText()
-            );
+            ).then();
         }
 
+        Mono<Void> photo = Mono.empty();
         if (message.hasPhoto()) {
             log.info("Photo message with caption: {}", message.getCaption());
-            savePhotoMessage(message, sourceId);
+            photo = savePhotoMessage(message, sourceId);
         }
 
+        Mono<Void> document = Mono.empty();
         if (message.hasDocument()) {
             log.info("Document message: {}", message.getDocument().getFileName());
-            saveDocumentMessage(message, sourceId);
+            document = saveDocumentMessage(message, sourceId);
         }
+
+        return Mono.whenDelayError(text, photo, document);
     }
 
-    private void savePhotoMessage(Message message, String sourceId) {
+    private Mono<Void> savePhotoMessage(Message message, String sourceId) {
         List<PhotoSize> photos = message.getPhoto();
         if (photos == null || photos.isEmpty()) {
             log.warn("Photo list is empty for message {}", message.getMessageId());
-            return;
+            return Mono.empty();
         }
 
         PhotoSize bestPhoto = photos.stream()
                 .max(Comparator.comparing(PhotoSize::getFileSize, Comparator.nullsLast(Integer::compareTo)))
-                .orElse(photos.get(photos.size() - 1));
+                .orElse(photos.getLast());
 
         String fileId = bestPhoto.getFileId();
         String fileUniqueId = bestPhoto.getFileUniqueId();
-        try {
-            org.telegram.telegrambots.meta.api.objects.File telegramFile =
-                    execute(new GetFile(fileId));
-            String filePath = telegramFile.getFilePath();
-            String extension = extractExtension(filePath, "jpg");
-            String fileName = "photo_" + message.getMessageId() + "." + extension;
 
-            byte[] data = downloadTelegramFile(telegramFile);
-            postSaveService.saveMediaPost(
-                    sourceId,
-                    message.getMessageId().longValue(),
-                    message.getDate(),
-                    fileId,
-                    fileUniqueId,
-                    data,
-                    fileName,
-                    message.getCaption()
-            );
-        } catch (TelegramApiException e) {
-            log.error("Failed to fetch photo file info for message {}", message.getMessageId(), e);
-        } catch (IOException e) {
-            log.error("Failed to download photo for message {}", message.getMessageId(), e);
-        }
+        return getTelegramFile(fileId)
+                .flatMap(telegramFile -> {
+                    String filePath = telegramFile.getFilePath();
+                    String extension = extractExtension(filePath, "jpg");
+                    String fileName = "photo_" + message.getMessageId() + "." + extension;
+
+                            return downloadTelegramFile(telegramFile)
+                            .flatMap(data -> postSaveService.saveMediaPost(
+                                    sourceId,
+                                    message.getMessageId().longValue(),
+                                    message.getDate(),
+                                    fileUniqueId,
+                                    data,
+                                    fileName,
+                                    message.getCaption()
+                            ))
+                            .then();
+                })
+                .onErrorResume(e -> {
+                    log.error("Failed to process photo for message {}", message.getMessageId(), e);
+                    return Mono.empty();
+                });
     }
 
-    private void saveDocumentMessage(Message message, String sourceId) {
+    private Mono<Void> saveDocumentMessage(Message message, String sourceId) {
         String fileId = message.getDocument().getFileId();
         String fileUniqueId = message.getDocument().getFileUniqueId();
         String fileName = message.getDocument().getFileName();
-        try {
-            org.telegram.telegrambots.meta.api.objects.File telegramFile =
-                    execute(new GetFile(fileId));
-            byte[] data = downloadTelegramFile(telegramFile);
-            postSaveService.saveMediaPost(
-                    sourceId,
-                    message.getMessageId().longValue(),
-                    message.getDate(),
-                    fileId,
-                    fileUniqueId,
-                    data,
-                    fileName,
-                    message.getCaption()
-            );
-        } catch (TelegramApiException e) {
-            log.error("Failed to fetch document file info for message {}", message.getMessageId(), e);
-        } catch (IOException e) {
-            log.error("Failed to download document for message {}", message.getMessageId(), e);
-        }
+
+        return getTelegramFile(fileId)
+                .flatMap(telegramFile ->
+                        downloadTelegramFile(telegramFile)
+                                .flatMap(data -> postSaveService.saveMediaPost(
+                                        sourceId,
+                                        message.getMessageId().longValue(),
+                                        message.getDate(),
+                                        fileUniqueId,
+                                        data,
+                                        fileName,
+                                        message.getCaption()
+                                ))
+                                .then()
+                )
+                .onErrorResume(e -> {
+                    log.error("Failed to process document for message {}", message.getMessageId(), e);
+                    return Mono.empty();
+                });
     }
 
-    private byte[] downloadTelegramFile(org.telegram.telegrambots.meta.api.objects.File telegramFile)
+    private Mono<org.telegram.telegrambots.meta.api.objects.File> getTelegramFile(String fileId) {
+        return Mono.fromCallable(() -> execute(new GetFile(fileId)))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private Mono<byte[]> downloadTelegramFile(org.telegram.telegrambots.meta.api.objects.File telegramFile) {
+        return Mono.fromCallable(() -> downloadTelegramFileBlocking(telegramFile))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private byte[] downloadTelegramFileBlocking(org.telegram.telegrambots.meta.api.objects.File telegramFile)
             throws IOException, TelegramApiException {
         try (InputStream inputStream = downloadFileAsStream(telegramFile);
              ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
