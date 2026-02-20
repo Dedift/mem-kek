@@ -1,5 +1,6 @@
 package mm.memkek.repository;
 
+import mm.memkek.dao.entity.Channel;
 import mm.memkek.dao.entity.Post;
 import mm.memkek.dao.enums.ContentType;
 import mm.memkek.dao.enums.MemeCategory;
@@ -11,8 +12,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.UUID;
+
 @Repository
-public interface PostRepository extends JpaRepository<Post, Long> {
+public interface PostRepository extends JpaRepository<Post, UUID> {
 
     Page<Post> findByStatusAndCategory(
             PostStatus status,
@@ -39,4 +42,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query("SELECT p FROM Post p WHERE p.category IS NULL AND p.status = 'REVIEW'")
     Page<Post> findPostsWithoutCategory(Pageable pageable);
+
+    boolean existsByChannelAndTelegramMessageId(Channel channel, Long telegramMessageId);
 }

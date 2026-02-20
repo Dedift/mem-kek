@@ -1,0 +1,125 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2
+      author: stanislau.zhvanski
+      changes:
+        - createTable:
+            tableName: posts
+            remarks: 'Posts (memes/jokes)'
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  remarks: 'Primary key'
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: channel_id
+                  type: UUID
+                  remarks: 'FK to channels'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: telegram_message_id
+                  type: BIGINT
+                  remarks: 'Telegram message id'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: telegram_date
+                  type: TIMESTAMP
+                  remarks: 'Message date in Telegram'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content_type
+                  type: VARCHAR(20)
+                  remarks: 'Content type'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content_text
+                  type: TEXT
+                  remarks: 'Post text'
+                  constraints:
+                    nullable: true
+              - column:
+                  name: media_url
+                  type: VARCHAR(1000)
+                  remarks: 'Media URL'
+                  constraints:
+                    nullable: true
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: 'REVIEW'
+                  remarks: 'Moderation status'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category
+                  type: VARCHAR(50)
+                  remarks: 'Meme category'
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  remarks: 'Created at'
+                  constraints:
+                    nullable: true
+              - column:
+                  name: approved_at
+                  type: TIMESTAMP
+                  remarks: 'Approved at'
+                  constraints:
+                    nullable: true
+              - column:
+                  name: telegram_file_id
+                  type: VARCHAR(512)
+                  remarks: 'Telegram file id'
+                  constraints:
+                    nullable: true
+              - column:
+                  name: telegram_file_unique_id
+                  type: VARCHAR(512)
+                  remarks: 'Telegram stable file id'
+                  constraints:
+                    nullable: true
+        - addDefaultValue:
+            tableName: posts
+            columnName: status
+            defaultValue: 'REVIEW'
+        - createIndex:
+            indexName: idx_posts_channel_id
+            tableName: posts
+            columns:
+              - column:
+                  name: channel_id
+        - createIndex:
+            indexName: idx_posts_status
+            tableName: posts
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            indexName: idx_posts_telegram_date
+            tableName: posts
+            columns:
+              - column:
+                  name: telegram_date
+        - addUniqueConstraint:
+            constraintName: uc_channel_message
+            tableName: posts
+            columnNames: channel_id, telegram_message_id
+            remarks: 'Unique per channel'
+        - addForeignKeyConstraint:
+            baseTableName: posts
+            baseColumnNames: channel_id
+            constraintName: fk_posts_channel
+            referencedTableName: channels
+            referencedColumnNames: id
+            onDelete: CASCADE
+            onUpdate: RESTRICT
+            remarks: 'Posts -> channels'

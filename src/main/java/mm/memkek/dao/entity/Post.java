@@ -83,6 +83,10 @@ public class Post {
     @Column(name = "telegram_file_id", length = 512)
     private String telegramFileId;
 
+    @Nullable
+    @Column(name = "telegram_file_unique_id", length = 512)
+    private String telegramFileUniqueId;
+
     /**
      * Одобрение поста
      * @throws IllegalStateException если пост не в статусе REVIEW
