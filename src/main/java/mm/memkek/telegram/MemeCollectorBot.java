@@ -152,7 +152,7 @@ public class MemeCollectorBot extends TelegramLongPollingBot {
                     String extension = extractExtension(filePath, "jpg");
                     String fileName = "photo_" + message.getMessageId() + "." + extension;
 
-                            return downloadTelegramFile(telegramFile)
+                    return downloadTelegramFile(telegramFile)
                             .flatMap(data -> postSaveService.saveMediaPost(
                                     sourceId,
                                     message.getMessageId().longValue(),
@@ -160,8 +160,7 @@ public class MemeCollectorBot extends TelegramLongPollingBot {
                                     fileUniqueId,
                                     data,
                                     fileName,
-                                    message.getCaption()
-                            ))
+                                    message.getCaption()))
                             .then();
                 })
                 .onErrorResume(e -> {
@@ -187,8 +186,7 @@ public class MemeCollectorBot extends TelegramLongPollingBot {
                                         fileName,
                                         message.getCaption()
                                 ))
-                                .then()
-                )
+                                .then())
                 .onErrorResume(e -> {
                     log.error("Failed to process document for message {}", message.getMessageId(), e);
                     return Mono.empty();
