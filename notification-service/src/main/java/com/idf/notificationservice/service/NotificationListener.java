@@ -32,7 +32,7 @@ public class NotificationListener {
         String text = new String(body);
 
         String email = "test@mail.com";
-        String subject = "Notification about bad mem quality";
+        String subject = "Notification of poor meme quality";
 
         return new NotificationMessage(email, subject, text);
     }
