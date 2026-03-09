@@ -123,13 +123,7 @@ public class MemeCollectorBot extends TelegramLongPollingBot {
             photo = savePhotoMessage(message, sourceId);
         }
 
-        Mono<Void> document = Mono.empty();
-        if (message.hasDocument()) {
-            log.info("Document message: {}", message.getDocument().getFileName());
-            document = saveDocumentMessage(message, sourceId);
-        }
-
-        return Mono.whenDelayError(text, photo, document);
+        return Mono.whenDelayError(text, photo);
     }
 
     private Mono<Void> savePhotoMessage(Message message, String sourceId) {
@@ -149,7 +143,7 @@ public class MemeCollectorBot extends TelegramLongPollingBot {
         return getTelegramFile(fileId)
                 .flatMap(telegramFile -> {
                     String filePath = telegramFile.getFilePath();
-                    String extension = extractExtension(filePath, "jpg");
+                    String extension = extractExtension(filePath);
                     String fileName = "photo_" + message.getMessageId() + "." + extension;
 
                     return downloadTelegramFile(telegramFile)
@@ -165,30 +159,6 @@ public class MemeCollectorBot extends TelegramLongPollingBot {
                 })
                 .onErrorResume(e -> {
                     log.error("Failed to process photo for message {}", message.getMessageId(), e);
-                    return Mono.empty();
-                });
-    }
-
-    private Mono<Void> saveDocumentMessage(Message message, String sourceId) {
-        String fileId = message.getDocument().getFileId();
-        String fileUniqueId = message.getDocument().getFileUniqueId();
-        String fileName = message.getDocument().getFileName();
-
-        return getTelegramFile(fileId)
-                .flatMap(telegramFile ->
-                        downloadTelegramFile(telegramFile)
-                                .flatMap(data -> postSaveService.saveMediaPost(
-                                        sourceId,
-                                        message.getMessageId().longValue(),
-                                        message.getDate(),
-                                        fileUniqueId,
-                                        data,
-                                        fileName,
-                                        message.getCaption()
-                                ))
-                                .then())
-                .onErrorResume(e -> {
-                    log.error("Failed to process document for message {}", message.getMessageId(), e);
                     return Mono.empty();
                 });
     }
@@ -212,13 +182,13 @@ public class MemeCollectorBot extends TelegramLongPollingBot {
         }
     }
 
-    private String extractExtension(String filePath, String fallback) {
+    private String extractExtension(String filePath) {
         if (filePath == null) {
-            return fallback;
+            return "jpg";
         }
         int lastDot = filePath.lastIndexOf('.');
         if (lastDot < 0 || lastDot == filePath.length() - 1) {
-            return fallback;
+            return "jpg";
         }
         return filePath.substring(lastDot + 1);
     }

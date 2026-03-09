@@ -41,3 +41,12 @@ minio:
   access-key: minioadmin
   secret-key: minioadmin123
   bucket: memes
+
+llm:
+  enabled: true
+  base-url: http://localhost:11434
+  text-model: qwen2.5:7b
+  vision-model: llava:7b
+  connect-timeout-seconds: 30
+  read-timeout-seconds: 240
+  max-retries: 3
