@@ -112,4 +112,15 @@ public class ChannelService {
                 .defaultIfEmpty(false)
                 .doOnNext(isActive -> log.debug("Channel {} active: {}", channelId, isActive));
     }
+
+    public Mono<Void> deleteChannel(UUID id) {
+        return channelRepository.findById(id)
+                .switchIfEmpty(Mono.error(
+                        new IllegalArgumentException("Channel not found with id: " + id)))
+                .flatMap(channel -> {
+                    log.info("Deleting channel: {} ({})", channel.getChannelName(),
+                            channel.getTelegramChannelId());
+                    return channelRepository.delete(channel);
+                });
+    }
 }

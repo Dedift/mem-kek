@@ -66,4 +66,10 @@ public class ChannelController {
         return channelService.activateChannel(id)
                 .map(ResponseEntity::ok);
     }
+
+    @DeleteMapping("/{id}")
+    public Mono<ResponseEntity<Void>> deleteChannel(@PathVariable UUID id) {
+        return channelService.deleteChannel(id)
+                .then(Mono.just(ResponseEntity.noContent().build()));
+    }
 }
