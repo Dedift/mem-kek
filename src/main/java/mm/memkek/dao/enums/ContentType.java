@@ -6,8 +6,6 @@ import lombok.Getter;
 public enum ContentType {
     TEXT("Текстовый пост", "Анекдот, история"),
     IMAGE("Изображение", "Мем, картинка"),
-    VIDEO("Видео", "Видеомем, клип"),
-    ANIMATION("Анимация", "GIF"),
     OTHER("Другое", "Другой тип контента");
 
     private final String displayName;

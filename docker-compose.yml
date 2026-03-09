@@ -39,6 +39,46 @@ services:
         mc mb --ignore-existing local/memes
         exit 0
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: mem_kek_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: [ "CMD", "ollama", "list" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: mem_kek_ollama_init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: on-failure
+    environment:
+      OLLAMA_HOST: ollama:11434
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        TEXT_MODEL="qwen2.5:7b"
+        VISION_MODEL="llava:7b"
+        echo "Using text model: [$${TEXT_MODEL}]"
+        echo "Using vision model: [$${VISION_MODEL}]"
+        until ollama list >/dev/null 2>&1; do
+          sleep 2
+        done
+        ollama pull "$${TEXT_MODEL}"
+        ollama pull "$${VISION_MODEL}"
+        exit 0
+
 volumes:
   postgres_data:
   minio_data:
+  ollama_data:

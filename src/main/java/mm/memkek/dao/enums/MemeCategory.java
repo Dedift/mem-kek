@@ -4,7 +4,6 @@ import lombok.Getter;
 
 @Getter
 public enum MemeCategory {
-    HUMOR("Юмор", "Смешные мемы и анекдоты"),
     ANIMALS("Животные", "Котики, собачки и другие животные"),
     POLITICS("Политика", "Политические мемы и шутки"),
     GAMES("Игры", "Игровые мемы и приколы"),
@@ -14,6 +13,7 @@ public enum MemeCategory {
     PROGRAMMING("Программирование", "Мемы для IT-шников"),
     RELATIONSHIPS("Отношения", "Мемы про любовь и отношения"),
     LIFE("Жизнь", "Житейские ситуации и зарисовки"),
+    FANTASY("Фантастика", "Вымышленные существа, миры или персонажи"),
     OTHER("Другое", "Всё остальное");
 
     private final String displayName;
